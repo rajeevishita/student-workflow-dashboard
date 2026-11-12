@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Track student workers from application to first shift, with automations for onboarding checklists and follow-ups.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230A6B5C'/%3E%3Cpath d='M8 21h4v-6H8zM14 21h4V9h-4zM20 21h4v-9h-4z' fill='%23fff'/%3E%3C/svg%3E">
+<title>Student Workflow Automation Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+html { -webkit-text-size-adjust: 100%; }
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* Layout: header, then the 5-step hiring pipeline strip, then the records list (main) beside an attention / automations / activity rail; a record editor slides in from the right */
+:root {
+  --bg: #EDF1EF; --surface: #FFFFFF; --surface-2: #F5F7F6; --line: #D6DEDA; --line-strong: #B4C2BC;
+  --ink: #13201C; --ink-2: #47574F; --ink-3: #6A7A73;
+  --accent: #0A6B5C; --accent-ink: #FFFFFF; --accent-soft: #DCEEE9;
+  --s1: #E3EDEA; --s1-ink: #2B3D37; --s2: #C6E1D9; --s2-ink: #1E3A32; --s3: #94CBBB; --s3-ink: #123229;
+  --s4: #3A9882; --s4-ink: #FFFFFF; --s5: #0A6B5C; --s5-ink: #FFFFFF;
+  --warn: #8A5000; --warn-soft: #FBEBD2; --crit: #A3241C; --crit-soft: #FADFDB; --ok: #1E7535; --ok-soft: #DCF0E1;
+  --knob: #FFFFFF; --scrim: rgba(10, 18, 15, .42); --shadow: 0 18px 48px rgba(10, 30, 24, .18);
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1513; --surface: #151E1B; --surface-2: #1B2622; --line: #28362F; --line-strong: #3A4C45;
+    --ink: #E3EBE7; --ink-2: #A9B8B1; --ink-3: #82928B;
+    --accent: #4FC3A7; --accent-ink: #04221A; --accent-soft: #173A31;
+    --s1: #1F2C28; --s1-ink: #C9D6D1; --s2: #1F3D35; --s2-ink: #CFE6DF; --s3: #245849; --s3-ink: #DDF1EB;
+    --s4: #2D8570; --s4-ink: #F2FBF8; --s5: #4FC3A7; --s5-ink: #04221A;
+    --warn: #E9B266; --warn-soft: #33260F; --crit: #F2918A; --crit-soft: #3B1A17; --ok: #80D49B; --ok-soft: #15301E;
+    --knob: #E8EFEC; --scrim: rgba(0, 0, 0, .55); --shadow: 0 18px 48px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1513; --surface: #151E1B; --surface-2: #1B2622; --line: #28362F; --line-strong: #3A4C45;
+  --ink: #E3EBE7; --ink-2: #A9B8B1; --ink-3: #82928B;
+  --accent: #4FC3A7; --accent-ink: #04221A; --accent-soft: #173A31;
+  --s1: #1F2C28; --s1-ink: #C9D6D1; --s2: #1F3D35; --s2-ink: #CFE6DF; --s3: #245849; --s3-ink: #DDF1EB;
+  --s4: #2D8570; --s4-ink: #F2FBF8; --s5: #4FC3A7; --s5-ink: #04221A;
+  --warn: #E9B266; --warn-soft: #33260F; --crit: #F2918A; --crit-soft: #3B1A17; --ok: #80D49B; --ok-soft: #15301E;
+  --knob: #E8EFEC; --scrim: rgba(0, 0, 0, .55); --shadow: 0 18px 48px rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); -webkit-font-smoothing: antialiased; }
+.wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding-block: 28px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font: 500 11.5px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .09em; color: var(--ink-3); }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
+.top-title { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.lede { color: var(--ink-2); font-size: 15px; max-width: 62ch; }
+.top h1 { font-size: clamp(1.45rem, 1.1rem + 1.3vw, 2rem); font-weight: 650; letter-spacing: -.02em; line-height: 1.15; }
+.top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.status { display: inline-flex; align-items: center; gap: 7px; font: 500 12.5px var(--font-body); color: var(--ink-2); padding: 5px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.status i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.status.live i { background: var(--ok); }
+.status.warn { color: var(--warn); } .status.warn i { background: var(--warn); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: 600 14px/1.2 var(--font-body); padding: 9px 14px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; transition: background .15s, border-color .15s; }
+.btn:hover { background: var(--surface-2); }
+.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.btn-primary:hover { background: var(--accent); filter: brightness(1.08); }
+.btn-danger { color: var(--crit); border-color: var(--crit); background: transparent; }
+.btn-danger.solid { background: var(--crit); color: var(--surface); }
+.btn-sm { padding: 6px 10px; font-size: 13px; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+:where(button, input, select, a, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Sample banner */
+.sample { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 18px; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: 10px; font-size: 13.5px; color: var(--ink-2); }
+.sample p { flex: 1 1 260px; min-width: 0; }
+.sample strong { color: var(--ink); font-weight: 600; }
+.sample .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Pipeline strip */
+.pipeline { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.stage-btn { position: relative; display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; overflow: hidden; min-width: 0; }
+.stage-btn:hover { border-color: var(--line-strong); }
+.stage-btn[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.stage-btn .step { font: 500 11px var(--font-mono); color: var(--ink-3); letter-spacing: .04em; }
+.stage-btn .n { font: 600 30px/1 var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.stage-btn .lbl { font-size: 13.5px; font-weight: 500; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage-btn .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; }
+.stage-btn .alert { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; gap: 4px; font: 600 11.5px var(--font-mono); padding: 2px 6px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); }
+.stage-btn .alert.crit { background: var(--crit-soft); color: var(--crit); }
+
+/* Main grid */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 20px; margin-top: 20px; align-items: start; }
+.rail { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; padding: 14px 16px; }
+.panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -.005em; }
+.panel-head .meta { font-size: 12.5px; color: var(--ink-3); }
+.count { font: 600 12px var(--font-mono); padding: 1px 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); margin-left: 6px; }
+
+/* Records list */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 0 16px 14px; }
+.search { flex: 1 1 220px; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.search svg { flex: none; color: var(--ink-3); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 8px 0; font: inherit; color: var(--ink); outline: none; }
+.search:focus-within { border-color: var(--accent); }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 5px 6px 5px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); border: 0; cursor: pointer; }
+.chip span.x { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); font-size: 12px; }
+
+.thead, .row { display: grid; grid-template-columns: minmax(0, 2.1fr) 116px minmax(0, 1.7fr) 92px; gap: 14px; align-items: center; padding: 0 16px; }
+.thead { padding-block: 8px; border-top: 1px solid var(--line); background: var(--surface-2); font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); }
+.row { width: 100%; padding-block: 13px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; }
+.row:hover { background: var(--surface-2); }
+.row[aria-current="true"] { background: var(--accent-soft); }
+.list > .row:last-child { border-radius: 0 0 12px 12px; }
+.who { display: flex; flex-direction: column; min-width: 0; }
+.who b { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who small { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tag-sample { font: 500 10px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 4px; margin-left: 6px; vertical-align: 2px; }
+.c-status { display: flex; flex-direction: column; gap: 5px; min-width: 0; font-size: 13px; color: var(--ink-2); }
+.c-status .line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c-start { font-size: 13px; color: var(--ink-2); }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font: 500 12.5px/1.4 var(--font-body); white-space: nowrap; justify-self: start; }
+.pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .7; }
+.st-applied { background: var(--s1); color: var(--s1-ink); }
+.st-interview { background: var(--s2); color: var(--s2-ink); }
+.st-offer { background: var(--s3); color: var(--s3-ink); }
+.st-onboarding { background: var(--s4); color: var(--s4-ink); }
+.st-active { background: var(--s5); color: var(--s5-ink); }
+.bar-applied { background: var(--s1); } .bar-interview { background: var(--s2); } .bar-offer { background: var(--s3); } .bar-onboarding { background: var(--s4); } .bar-active { background: var(--s5); }
+
+.flag { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; max-width: 100%; font: 500 12px/1.35 var(--font-body); padding: 2px 8px; border-radius: 6px; }
+.flag svg { flex: none; }
+.flag span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flag.warn { background: var(--warn-soft); color: var(--warn); }
+.flag.crit { background: var(--crit-soft); color: var(--crit); }
+
+.meter { display: flex; align-items: center; gap: 8px; }
+.meter .track { flex: 0 1 120px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.meter .fill { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.meter .mono { font-size: 12px; color: var(--ink-2); }
+
+.state { padding: 36px 20px 40px; border-top: 1px solid var(--line); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.state h3 { font-size: 15px; font-weight: 600; }
+.state p { color: var(--ink-2); font-size: 13.5px; max-width: 44ch; }
+.skeleton { display: block; height: 12px; border-radius: 6px; background: var(--surface-2); margin: 16px; }
+
+/* Attention */
+.att { display: flex; flex-direction: column; }
+.att-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 11px 16px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; width: 100%; }
+.att-item:hover { background: var(--surface-2); }
+.att-item b { font-weight: 600; font-size: 14px; }
+.att-item small { color: var(--ink-2); font-size: 12.5px; }
+.att-empty { padding: 14px 16px 16px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
+.att-empty i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+
+/* Automations */
+.flow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.flow-name { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-weight: 600; font-size: 14px; }
+.kind { font: 500 10.5px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--ink-2); }
+.flow-rule { grid-column: 1; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+.flow-rule .arrow { color: var(--accent); font-weight: 600; }
+.flow-meta { grid-column: 1; font: 400 11.5px var(--font-mono); color: var(--ink-3); }
+.flow .switch { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
+.flow.off .flow-name, .flow.off .flow-rule { opacity: .55; }
+.switch { position: relative; width: 38px; height: 22px; border-radius: 999px; border: 0; background: var(--line-strong); cursor: pointer; flex: none; transition: background .15s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--knob); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { transform: translateX(16px); }
+.switch[disabled] { cursor: not-allowed; opacity: .6; }
+
+/* Activity */
+.acts { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
+.act { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 13px; }
+.act .ico { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-3); }
+.act.flow-run .ico { background: var(--accent-soft); color: var(--accent); }
+.act p { color: var(--ink); line-height: 1.45; overflow-wrap: anywhere; }
+.act time { display: block; font: 400 11.5px var(--font-mono); color: var(--ink-3); margin-top: 2px; }
+
+/* Drawer */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 40; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; width: min(470px, 100%);
+  background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow);
+  overflow-y: auto; overscroll-behavior: contain;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+  padding-left: 22px; padding-right: max(22px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px;
+}
+.dr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.dr-head h2 { font-size: 22px; font-weight: 650; letter-spacing: -.015em; line-height: 1.2; margin-top: 4px; overflow-wrap: anywhere; }
+.dr-head .sub { color: var(--ink-2); font-size: 14px; margin-top: 2px; }
+.icon-btn { flex: none; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--ink-2); }
+.icon-btn:hover { background: var(--surface-2); }
+.dr-sec { display: flex; flex-direction: column; gap: 10px; }
+.dr-sec h3 { font: 500 11.5px var(--font-mono); text-transform: uppercase; letter-spacing: .09em; color: var(--ink-3); }
+.dr-flags { display: flex; flex-direction: column; gap: 6px; }
+.dr-flags .flag { font-size: 13px; padding: 5px 10px; }
+.dr-flags .flag span { white-space: normal; }
+.seg { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line-strong); border-radius: 9px; overflow: hidden; }
+.seg button { padding: 9px 2px; border: 0; background: var(--surface); font-size: 12.5px; font-weight: 500; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg button:hover:not([disabled]) { background: var(--surface-2); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button[disabled] { cursor: default; }
+.next-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.next-row small { font-size: 12.5px; color: var(--ink-3); }
+.checks { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.check { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border-top: 1px solid var(--line); cursor: pointer; }
+.check:first-child { border-top: 0; }
+.check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); cursor: pointer; }
+.check b { font-weight: 500; font-size: 14px; display: block; }
+.check small { color: var(--ink-3); font-size: 12px; }
+.check.done b { color: var(--ink-2); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+.field input { width: 100%; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); color: var(--ink); }
+.field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.field input[readonly] { background: transparent; border-style: dashed; }
+.danger-zone { border-top: 1px solid var(--line); padding-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.danger-zone p { font-size: 13.5px; color: var(--ink-2); flex: 1 1 100%; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.hint { font-size: 12.5px; color: var(--ink-3); }
+
+/* Footer */
+.foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
+.foot p { flex: 1 1 280px; min-width: 0; }
+.foot strong { color: var(--ink); font-weight: 600; }
+.foot .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Toast */
+.toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 500; box-shadow: var(--shadow); }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .thead { display: none; }
+  .row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+  .row .c-status { grid-column: 1 / -1; }
+  .row .c-start { display: none; }
+  .pipeline { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .pipeline .stage-btn { grid-column: span 2; }
+  .pipeline .stage-btn:nth-child(n+4) { grid-column: span 3; }
+  .stage-btn .n { font-size: 24px; }
+  .fields { grid-template-columns: minmax(0, 1fr); }
+  .seg { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .seg button { grid-column: span 2; font-size: 13px; }
+  .seg button:nth-child(n+4) { grid-column: span 3; }
+  .drawer { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="top-title">
+      <h1>Student Workflow Automation Dashboard</h1>
+      <p class="lede">Keep track of student workers from the day they apply to their first shift. The routine steps happen on their own.</p>
+    </div>
+    <div class="top-actions">
+      <span id="status" class="status"><i></i><span>Connecting</span></span>
+      <span id="readonly" class="status" hidden><span>View only</span></span>
+      <button id="add-btn" class="btn btn-primary" data-act="new" data-fk="add">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+        Add student
+      </button>
+    </div>
+  </header>
+
+  <div id="sample" class="sample" hidden></div>
+
+  <nav id="pipeline" class="pipeline" aria-label="Hiring pipeline stages"></nav>
+
+  <div class="layout">
+    <section class="panel" aria-labelledby="students-h">
+      <div class="panel-head">
+        <h2 id="students-h">Students<span id="students-count" class="count">0</span></h2>
+        <span id="list-meta" class="meta"></span>
+      </div>
+      <div class="toolbar">
+        <label class="search">
+          <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input id="q" type="search" placeholder="Search by name, job or department" aria-label="Search students" autocomplete="off">
+        </label>
+        <span id="filter-chip"></span>
+      </div>
+      <div class="thead" aria-hidden="true"><span>Student</span><span>Stage</span><span>Status</span><span>Start</span></div>
+      <div id="list" class="list"></div>
+    </section>
+
+    <aside class="rail">
+      <section class="panel" aria-labelledby="att-h">
+        <div class="panel-head"><h2 id="att-h">Needs attention<span id="att-count" class="count">0</span></h2><span class="meta">Spotted automatically</span></div>
+        <div id="attention" class="att"></div>
+      </section>
+      <section class="panel" aria-labelledby="flows-h">
+        <div class="panel-head"><h2 id="flows-h">Automations</h2><span id="flows-meta" class="meta"></span></div>
+        <div id="flows"></div>
+      </section>
+      <section class="panel" aria-labelledby="act-h">
+        <div class="panel-head"><h2 id="act-h">Activity</h2><span class="meta">Most recent first</span></div>
+        <div id="activity" class="acts"></div>
+      </section>
+    </aside>
+  </div>
+  <footer id="foot" class="foot"></footer>
+</div>
+
+<div id="scrim" class="scrim" data-act="close" hidden></div>
+<aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-title" hidden></aside>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const STAGES = [
+    { key: "applied", label: "Applied" },
+    { key: "interview", label: "Interview" },
+    { key: "offer", label: "Offer" },
+    { key: "onboarding", label: "Onboarding" },
+    { key: "active", label: "Active" }
+  ];
+  const STAGE_KEYS = STAGES.map(s => s.key);
+  const TASKS = [
+    { key: "i9", label: "I-9 verified", hint: "Section 2 is due within 3 business days of the start date" },
+    { key: "tax", label: "W-4 and Arizona A-4 filed", hint: "Federal and state withholding forms" },
+    { key: "payroll", label: "Payroll set up in Workday", hint: "Direct deposit and job record entered" },
+    { key: "training", label: "Required trainings completed", hint: "Safety and FERPA modules" },
+    { key: "access", label: "Building access and Sun Card updated", hint: "Badge access for the work location" }
+  ];
+  const FLOWS = [
+    { key: "kickoff", kind: "Action", name: "Start onboarding", trigger: "Someone moves to Onboarding", action: "build their checklist, and set next Monday as the start date if there isn't one" },
+    { key: "activate", kind: "Action", name: "Mark as active", trigger: "The last onboarding task gets checked", action: "move them to Active" },
+    { key: "stale", kind: "Alert", name: "Old applications", trigger: "An application has waited 5 days or more", action: "flag it so it gets a decision" },
+    { key: "risk", kind: "Alert", name: "Start date check", trigger: "Someone starts within 3 days with tasks still open", action: "flag them as at risk" },
+    { key: "assign", kind: "Alert", name: "Missing shifts", trigger: "Someone is Active but has no location or shift", action: "flag them for scheduling" }
+  ];
+  const DEFAULT_FLOWS = { kickoff: true, activate: true, stale: true, risk: true, assign: true };
+
+  const S = {
+    db: null, canWrite: true, canKnown: false,
+    status: "loading", studentsLoaded: false,
+    students: [], activity: [], flows: Object.assign({}, DEFAULT_FLOWS),
+    filter: "all", q: "", sel: null, mode: null,
+    confirmDelete: false, confirmSample: false, busy: false
+  };
+
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const str = v => (typeof v === "string" ? v.trim().slice(0, 200) : "");
+  const pad = n => String(n).padStart(2, "0");
+  const iso = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const todayStr = () => iso(new Date());
+  const parseDate = s => {
+    if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const [y, m, d] = s.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    return isNaN(dt) ? null : dt;
+  };
+  const dateStr = v => (parseDate(v) ? v : "");
+  const daysFromToday = s => {
+    const d = parseDate(s); if (!d) return null;
+    return Math.round((d - parseDate(todayStr())) / 86400000);
+  };
+  const fmt = s => { const d = parseDate(s); return d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""; };
+  const fmtLong = s => { const d = parseDate(s); return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : ""; };
+  const nextMonday = () => {
+    const d = parseDate(todayStr());
+    const add = ((8 - d.getDay()) % 7) || 7;
+    d.setDate(d.getDate() + add);
+    return iso(d);
+  };
+  const ago = ts => {
+    if (typeof ts !== "number") return "";
+    const diff = Date.now() - ts;
+    const m = Math.round(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return m + " min ago";
+    const h = Math.round(m / 60);
+    if (h < 24) return h + " h ago";
+    const d = Math.round(h / 24);
+    if (d < 7) return d + (d === 1 ? " day ago" : " days ago");
+    return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+  const stageLabel = k => (STAGES.find(s => s.key === k) || STAGES[0]).label;
+  const stageIndex = k => Math.max(0, STAGE_KEYS.indexOf(k));
+
+  const ICON = {
+    warn: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.2 11 10.5H1z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 4.6v2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="6" cy="8.8" r=".8" fill="currentColor"/></svg>',
+    crit: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 3.3v3.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="6" cy="8.6" r=".8" fill="currentColor"/></svg>',
+    bolt: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M7 .8 2.3 7h3.3L5 11.2 9.7 5H6.4z" fill="currentColor"/></svg>',
+    dot: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2.4" fill="currentColor"/></svg>',
+    close: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+  };
+
+  function normalize(doc) {
+    const x = doc.data() || {};
+    const tasksIn = x.tasks && typeof x.tasks === "object" ? x.tasks : null;
+    const tasks = {};
+    TASKS.forEach(t => { tasks[t.key] = !!(tasksIn && tasksIn[t.key] === true); });
+    const a = x.assignment && typeof x.assignment === "object" ? x.assignment : {};
+    const hours = typeof x.hours === "number" && isFinite(x.hours) ? x.hours : null;
+    return {
+      id: doc.id,
+      name: str(x.name) || "Unnamed student",
+      position: str(x.position), dept: str(x.dept),
+      stage: STAGE_KEYS.includes(x.stage) ? x.stage : "applied",
+      appliedOn: dateStr(x.appliedOn), interviewOn: dateStr(x.interviewOn),
+      startDate: dateStr(x.startDate), stageSince: dateStr(x.stageSince),
+      supervisor: str(x.supervisor), hours,
+      tasks, hasTasks: !!tasksIn,
+      assignment: { location: str(a.location), shift: str(a.shift) },
+      sample: x.sample === true,
+      updatedAt: typeof x.updatedAt === "number" ? x.updatedAt : 0
+    };
+  }
+
+  function doneCount(st) { return TASKS.filter(t => st.tasks[t.key]).length; }
+
+  function flagsFor(st) {
+    const f = [];
+    if (S.flows.stale && st.stage === "applied" && st.appliedOn) {
+      const age = -daysFromToday(st.appliedOn);
+      if (age >= 5) f.push({ level: "warn", flow: "stale", label: "Waiting on a decision", detail: "Applied " + age + " days ago" });
+    }
+    if (S.flows.risk && st.stage === "onboarding" && st.startDate) {
+      const open = TASKS.length - doneCount(st);
+      const d = daysFromToday(st.startDate);
+      if (open > 0 && d !== null && d <= 3) {
+        const when = d < 0 ? "Started " + (-d) + (d === -1 ? " day ago" : " days ago") : d === 0 ? "Starts today" : d === 1 ? "Starts tomorrow" : "Starts in " + d + " days";
+        f.push({ level: d <= 1 ? "crit" : "warn", flow: "risk", label: "Start date at risk", detail: when + ", " + open + (open === 1 ? " task" : " tasks") + " open" });
+      }
+    }
+    if (S.flows.assign && st.stage === "active" && (!st.assignment.location || !st.assignment.shift)) {
+      f.push({ level: "warn", flow: "assign", label: "No shift yet", detail: !st.assignment.location && !st.assignment.shift ? "No location or shift set" : !st.assignment.location ? "No location set" : "No shift set" });
+    }
+    return f;
+  }
+
+  function sortedStudents() {
+    return S.students.slice().sort((a, b) => stageIndex(a.stage) - stageIndex(b.stage) || a.name.localeCompare(b.name));
+  }
+
+  function visibleStudents() {
+    const q = S.q.trim().toLowerCase();
+    return sortedStudents().filter(st =>
+      (S.filter === "all" || st.stage === S.filter) &&
+      (!q || (st.name + " " + st.position + " " + st.dept + " " + st.supervisor).toLowerCase().includes(q))
+    );
+  }
+
+  /* ---------- rendering ---------- */
+
+  function withFocus(container, fn) {
+    const a = document.activeElement;
+    const key = a && container.contains(a) ? a.getAttribute("data-fk") : null;
+    fn();
+    if (key) {
+      const el = container.querySelector('[data-fk="' + CSS.escape(key) + '"]');
+      if (el) el.focus({ preventScroll: true });
+    }
+  }
+
+  function render() {
+    renderStatus();
+    renderSample();
+    renderPipeline();
+    renderList();
+    renderAttention();
+    renderFlows();
+    renderActivity();
+    renderDrawer();
+    renderFooter();
+  }
+
+  function renderStatus() {
+    const el = $("#status");
+    const map = {
+      loading: ["", "Connecting"],
+      live: ["live", persists ? "Saved in this browser" : "Not saving in this browser"],
+      slow: ["warn", "Can't reach the records yet"],
+      error: ["warn", "Records unavailable"],
+      nodb: ["warn", "Records unavailable here"]
+    };
+    const [cls, text] = map[S.status] || map.loading;
+    el.className = "status " + cls;
+    el.innerHTML = "<i></i><span>" + esc(text) + "</span>";
+    $("#readonly").hidden = S.canWrite || S.status === "nodb";
+    $("#add-btn").hidden = !S.canWrite || S.status === "nodb";
+  }
+
+  function renderSample() {
+    const el = $("#sample");
+    const n = S.students.filter(s => s.sample).length;
+    if (!n) { el.hidden = true; el.innerHTML = ""; return; }
+    el.hidden = false;
+    withFocus(el, () => {
+      if (S.confirmSample) {
+        el.innerHTML = '<p><strong>Remove the ' + n + ' made-up ' + (n === 1 ? "student" : "students") + '?</strong> Anyone you added stays. You can\'t undo this.</p>' +
+          '<div class="row-actions"><button class="btn btn-sm btn-danger solid" data-act="sample-yes" data-fk="sy"' + (S.busy ? " disabled" : "") + '>Remove them</button>' +
+          '<button class="btn btn-sm" data-act="sample-no" data-fk="sn">Cancel</button></div>';
+      } else {
+        el.innerHTML = '<p><strong>Heads up:</strong> ' + (n === 1 ? "this student is" : "these " + n + " students are") + ' made up so you can try things out. Move someone into Onboarding and watch their checklist appear.</p>' +
+          (S.canWrite ? '<div class="row-actions"><button class="btn btn-sm" data-act="sample-ask" data-fk="sa">Remove sample students</button></div>' : "");
+      }
+    });
+  }
+
+  function renderPipeline() {
+    const el = $("#pipeline");
+    withFocus(el, () => {
+      el.innerHTML = STAGES.map((s, i) => {
+        const list = S.students.filter(x => x.stage === s.key);
+        const flags = list.map(flagsFor).flat();
+        const crit = flags.some(f => f.level === "crit");
+        const pressed = S.filter === s.key;
+        return '<button class="stage-btn" data-act="filter" data-stage="' + s.key + '" data-fk="stage-' + s.key + '" aria-pressed="' + pressed + '">' +
+          '<span class="step">Step ' + (i + 1) + '</span>' +
+          '<span class="n">' + (S.studentsLoaded ? list.length : "–") + '</span>' +
+          '<span class="lbl">' + s.label + '</span>' +
+          (flags.length ? '<span class="alert' + (crit ? " crit" : "") + '" title="' + flags.length + ' flagged">' + (crit ? ICON.crit : ICON.warn) + flags.length + '</span>' : "") +
+          '<span class="bar bar-' + s.key + '"></span></button>';
+      }).join("");
+    });
+  }
+
+  function statusCell(st, flags) {
+    let line = "";
+    if (st.stage === "applied") line = st.appliedOn ? "Applied " + fmt(st.appliedOn) : "Application received";
+    else if (st.stage === "interview") line = st.interviewOn ? "Interview " + fmtLong(st.interviewOn) : "Interview not scheduled";
+    else if (st.stage === "offer") line = st.stageSince ? "Offer sent " + fmt(st.stageSince) : "Offer sent";
+    else if (st.stage === "onboarding") {
+      const n = doneCount(st);
+      line = '<span class="meter"><span class="track"><span class="fill" style="width:' + Math.round(n / TASKS.length * 100) + '%"></span></span><span class="mono">' + n + "/" + TASKS.length + " tasks</span></span>";
+    } else if (st.stage === "active") {
+      const a = st.assignment;
+      line = a.location || a.shift ? esc([a.location, a.shift].filter(Boolean).join(" · ")) : "Unassigned";
+    }
+    const isHtml = st.stage === "onboarding" || st.stage === "active";
+    return '<span class="line">' + (isHtml ? line : esc(line)) + "</span>" +
+      flags.map(f => '<span class="flag ' + f.level + '">' + ICON[f.level] + "<span>" + esc(f.label) + "</span></span>").join("");
+  }
+
+  function renderList() {
+    const el = $("#list");
+    $("#students-count").textContent = String(S.students.length);
+    const chip = $("#filter-chip");
+    chip.innerHTML = S.filter !== "all"
+      ? '<button class="chip" data-act="clear-filter" data-fk="clear-filter" aria-label="Clear the ' + esc(stageLabel(S.filter)) + ' filter">' + esc(stageLabel(S.filter)) + ' only <span class="x" aria-hidden="true">×</span></button>'
+      : "";
+    if (S.status === "nodb") {
+      el.innerHTML = '<div class="state"><h3>Records aren\'t available in this view</h3><p>Open this page in Claude while signed in to see and edit the student records.</p></div>';
+      $("#list-meta").textContent = "";
+      return;
+    }
+    if (!S.studentsLoaded) {
+      el.innerHTML = S.status === "error"
+        ? '<div class="state"><h3>The records couldn\'t load</h3><p>Reload the page to try again.</p></div>'
+        : '<div class="state"><h3>Loading students</h3><p>' + (S.status === "slow" ? "This is taking longer than usual. Check your connection; the list fills in as soon as the records arrive." : "Pulling up your students.") + "</p></div>";
+      $("#list-meta").textContent = "";
+      return;
+    }
+    if (!S.students.length) {
+      el.innerHTML = '<div class="state"><h3>No students yet</h3><p>' + (S.canWrite ? "Add your first applicant and the automations take it from there." : "Students show up here once someone with edit access adds them.") + "</p>" +
+        (S.canWrite ? '<button class="btn btn-primary" data-act="new" data-fk="empty-add">Add student</button>' : "") + "</div>";
+      $("#list-meta").textContent = "";
+      return;
+    }
+    const vis = visibleStudents();
+    $("#list-meta").textContent = vis.length === S.students.length ? "" : "Showing " + vis.length + " of " + S.students.length;
+    withFocus(el, () => {
+      if (!vis.length) {
+        el.innerHTML = '<div class="state"><h3>No students match</h3><p>Try a different name or clear the stage filter.</p></div>';
+        return;
+      }
+      el.innerHTML = vis.map(st => {
+        const flags = flagsFor(st);
+        return '<button class="row" data-act="open" data-id="' + esc(st.id) + '" data-fk="row-' + esc(st.id) + '" aria-current="' + (S.mode === "view" && S.sel === st.id) + '">' +
+          '<span class="who"><b>' + esc(st.name) + (st.sample ? '<span class="tag-sample">Sample</span>' : "") + "</b>" +
+          "<small>" + esc([st.position, st.dept].filter(Boolean).join(" · ") || "No role set") + "</small></span>" +
+          '<span class="pill st-' + st.stage + '"><i></i>' + stageLabel(st.stage) + "</span>" +
+          '<span class="c-status">' + statusCell(st, flags) + "</span>" +
+          '<span class="c-start mono">' + (st.startDate ? esc(fmt(st.startDate)) : "–") + "</span></button>";
+      }).join("");
+    });
+  }
+
+  function allFlags() {
+    const out = [];
+    S.students.forEach(st => flagsFor(st).forEach(f => out.push({ st, f })));
+    return out.sort((a, b) => (a.f.level === "crit" ? 0 : 1) - (b.f.level === "crit" ? 0 : 1) || a.st.name.localeCompare(b.st.name));
+  }
+
+  function renderAttention() {
+    const el = $("#attention");
+    const items = S.studentsLoaded ? allFlags() : [];
+    $("#att-count").textContent = String(items.length);
+    withFocus(el, () => {
+      if (!S.studentsLoaded) { el.innerHTML = '<div class="att-empty">Loading…</div>'; return; }
+      if (!items.length) { el.innerHTML = '<div class="att-empty"><i></i>All caught up. Nothing needs you right now.</div>'; return; }
+      el.innerHTML = items.map(({ st, f }) =>
+        '<button class="att-item" data-act="open" data-id="' + esc(st.id) + '" data-fk="att-' + esc(st.id) + "-" + f.flow + '">' +
+        '<span class="flag ' + f.level + '">' + ICON[f.level] + "<span>" + esc(f.label) + "</span></span>" +
+        "<b>" + esc(st.name) + "</b><small>" + esc(f.detail) + "</small></button>"
+      ).join("");
+    });
+  }
+
+  function lastRun(key) {
+    const a = S.activity.find(x => x.flow === key);
+    return a ? "Last ran " + ago(a.ts) : "Hasn't run lately";
+  }
+
+  function renderFlows() {
+    const el = $("#flows");
+    const on = FLOWS.filter(f => S.flows[f.key]).length;
+    $("#flows-meta").textContent = on + " of " + FLOWS.length + " on";
+    const flagged = {};
+    S.students.forEach(st => flagsFor(st).forEach(f => { flagged[f.flow] = (flagged[f.flow] || 0) + 1; }));
+    withFocus(el, () => {
+      el.innerHTML = FLOWS.map(f => {
+        const isOn = !!S.flows[f.key];
+        const meta = !isOn ? "Off" : f.kind === "Action" ? lastRun(f.key) : (flagged[f.key] || 0) + " flagged right now";
+        return '<div class="flow' + (isOn ? "" : " off") + '">' +
+          '<div class="flow-name">' + esc(f.name) + '<span class="kind">' + f.kind + "</span></div>" +
+          '<button class="switch" role="switch" aria-checked="' + isOn + '" aria-label="' + esc(f.name) + '" data-act="toggle-flow" data-flow="' + f.key + '" data-fk="flow-' + f.key + '"' + (S.canWrite && S.status !== "nodb" ? "" : " disabled") + "></button>" +
+          '<p class="flow-rule">When ' + esc(f.trigger.charAt(0).toLowerCase() + f.trigger.slice(1)) + ' <span class="arrow" aria-hidden="true">→</span> ' + esc(f.action) + "</p>" +
+          '<p class="flow-meta">' + esc(meta) + "</p></div>";
+      }).join("");
+    });
+  }
+
+  function renderActivity() {
+    const el = $("#activity");
+    if (!S.activity.length) {
+      el.innerHTML = '<div class="att-empty">' + (S.studentsLoaded ? "Nothing here yet. Moves and automatic updates show up as they happen." : "Loading…") + "</div>";
+      return;
+    }
+    el.innerHTML = S.activity.map(a =>
+      '<div class="act' + (a.kind === "flow" ? " flow-run" : "") + '"><span class="ico">' + (a.kind === "flow" ? ICON.bolt : ICON.dot) + "</span>" +
+      "<div><p>" + (a.kind === "flow" && a.flowName ? "<b>" + esc(a.flowName) + ":</b> " : "") + esc(a.text) + "</p>" +
+      '<time datetime="' + esc(new Date(a.ts).toISOString()) + '" title="' + esc(new Date(a.ts).toLocaleString()) + '">' + esc(ago(a.ts)) + "</time></div></div>"
+    ).join("");
+  }
+
+  function field(label, name, value, opts) {
+    opts = opts || {};
+    const id = "f-" + name.replace(/\./g, "-");
+    return '<div class="field' + (opts.full ? " full" : "") + '"><label for="' + id + '">' + esc(label) + "</label>" +
+      '<input id="' + id + '" name="' + esc(name) + '" data-field="' + esc(name) + '" data-fk="' + id + '" type="' + (opts.type || "text") + '" value="' + esc(value == null ? "" : value) + '"' +
+      (opts.placeholder ? ' placeholder="' + esc(opts.placeholder) + '"' : "") +
+      (opts.type === "number" ? ' min="0" max="40" step="1" inputmode="numeric"' : "") +
+      (S.canWrite ? "" : " readonly") + "></div>";
+  }
+
+  let drawerKey = null, drawerPending = false;
+
+  function renderDrawer() {
+    const dr = $("#drawer"), scrim = $("#scrim");
+    const st = S.mode === "view" ? S.students.find(s => s.id === S.sel) : null;
+    if (S.mode === "view" && S.studentsLoaded && !st) { S.mode = null; S.sel = null; }
+    if (!S.mode) {
+      if (!dr.hidden) { dr.hidden = true; scrim.hidden = true; dr.innerHTML = ""; document.body.style.overflow = ""; drawerKey = null; }
+      return;
+    }
+    if (S.mode === "view" && !st) return;
+    const key = S.mode === "new" ? "new" : "view:" + S.sel;
+    const opening = dr.hidden || drawerKey !== key;
+    if (!opening) {
+      if (S.mode === "new") return;
+      const a = document.activeElement;
+      if (a && dr.contains(a) && a.matches('input:not([type="checkbox"]), textarea, select')) { drawerPending = true; return; }
+    }
+    drawerPending = false;
+    drawerKey = key;
+    dr.hidden = false; scrim.hidden = false;
+    document.body.style.overflow = "hidden";
+    withFocus(dr, () => { dr.innerHTML = S.mode === "new" ? newForm() : viewRecord(st); });
+    if (opening) {
+      const first = S.mode === "new" ? $("#n-name", dr) : $("[data-act=close]", dr);
+      if (first) first.focus({ preventScroll: true });
+      dr.scrollTop = 0;
+    }
+  }
+
+  function newForm() {
+    return '<div class="dr-head"><div><p class="eyebrow">New record</p><h2 id="dr-title">Add an applicant</h2><p class="sub">They\'ll start in Applied.</p></div>' +
+      '<button class="icon-btn" data-act="close" aria-label="Close">' + ICON.close + "</button></div>" +
+      '<form id="new-form" class="dr-sec" novalidate><div class="fields">' +
+      '<div class="field full"><label for="n-name">Student name</label><input id="n-name" name="name" type="text" required autocomplete="off" placeholder="First and last name"></div>' +
+      '<div class="field full"><label for="n-position">Position</label><input id="n-position" name="position" type="text" autocomplete="off" placeholder="Library Aide"></div>' +
+      '<div class="field full"><label for="n-dept">Department or location</label><input id="n-dept" name="dept" type="text" autocomplete="off" placeholder="Hayden Library"></div>' +
+      '<div class="field"><label for="n-applied">Applied on</label><input id="n-applied" name="appliedOn" type="date" value="' + todayStr() + '"></div>' +
+      '<div class="field"><label for="n-hours">Hours per week</label><input id="n-hours" name="hours" type="number" min="0" max="40" step="1" inputmode="numeric" placeholder="15"></div>' +
+      '</div><p id="n-error" class="hint" hidden></p>' +
+      '<div class="form-actions"><button type="submit" class="btn btn-primary"' + (S.busy ? " disabled" : "") + '>Add student</button><button type="button" class="btn" data-act="close">Cancel</button></div></form>';
+  }
+
+  function viewRecord(st) {
+    const flags = flagsFor(st);
+    const idx = stageIndex(st.stage);
+    const next = STAGES[idx + 1];
+    const showTasks = st.stage === "onboarding" || st.stage === "active";
+    const n = doneCount(st);
+    let h = '<div class="dr-head"><div><p class="eyebrow">Student record' + (st.sample ? " · Sample" : "") + "</p>" +
+      '<h2 id="dr-title">' + esc(st.name) + "</h2>" +
+      '<p class="sub">' + esc([st.position, st.dept].filter(Boolean).join(" · ") || "No role set") + "</p></div>" +
+      '<button class="icon-btn" data-act="close" data-fk="close" aria-label="Close">' + ICON.close + "</button></div>";
+
+    if (flags.length) {
+      h += '<div class="dr-flags">' + flags.map(f => '<span class="flag ' + f.level + '">' + ICON[f.level] + "<span><b>" + esc(f.label) + ".</b> " + esc(f.detail) + "</span></span>").join("") + "</div>";
+    }
+
+    h += '<section class="dr-sec"><h3>Stage</h3><div class="seg" role="group" aria-label="Stage">' +
+      STAGES.map(s => '<button data-act="stage" data-stage="' + s.key + '" data-fk="seg-' + s.key + '" aria-pressed="' + (s.key === st.stage) + '"' + (S.canWrite && !S.busy ? "" : " disabled") + ">" + s.label + "</button>").join("") + "</div>";
+    if (next && S.canWrite) {
+      const note = next.key === "onboarding" && S.flows.kickoff ? "Their checklist gets created automatically." : next.key === "active" && n < TASKS.length ? (TASKS.length - n) + " onboarding tasks are still open." : "";
+      h += '<div class="next-row"><button class="btn btn-primary btn-sm" data-act="next-stage" data-fk="next"' + (S.busy ? " disabled" : "") + ">Move to " + next.label + " →</button>" + (note ? "<small>" + esc(note) + "</small>" : "") + "</div>";
+    }
+    h += "</section>";
+
+    if (showTasks) {
+      h += '<section class="dr-sec"><h3>Onboarding checklist · ' + n + "/" + TASKS.length + '</h3><div class="checks">' +
+        TASKS.map(t => '<label class="check' + (st.tasks[t.key] ? " done" : "") + '"><input type="checkbox" data-task="' + t.key + '" data-fk="task-' + t.key + '"' + (st.tasks[t.key] ? " checked" : "") + (S.canWrite ? "" : " disabled") + ">" +
+          "<span><b>" + esc(t.label) + "</b><small>" + esc(t.hint) + "</small></span></label>").join("") + "</div>" +
+        (st.stage === "onboarding" && S.flows.activate ? '<p class="hint">Checking the last task moves ' + esc(st.name.split(" ")[0]) + " to Active.</p>" : "") + "</section>";
+    }
+
+    h += '<section class="dr-sec"><h3>Details</h3><div class="fields">' +
+      field("Position", "position", st.position) +
+      field("Department or location", "dept", st.dept) +
+      field("Applied on", "appliedOn", st.appliedOn, { type: "date" }) +
+      field("Interview on", "interviewOn", st.interviewOn, { type: "date" }) +
+      field("Start date", "startDate", st.startDate, { type: "date" }) +
+      field("Hours per week", "hours", st.hours, { type: "number" }) +
+      field("Supervisor", "supervisor", st.supervisor, { full: true }) +
+      "</div></section>";
+
+    h += '<section class="dr-sec"><h3>Job assignment</h3><div class="fields">' +
+      field("Work location", "assignment.location", st.assignment.location, { full: true, placeholder: "MU Info Desk, 1st floor" }) +
+      field("Shift", "assignment.shift", st.assignment.shift, { full: true, placeholder: "Mon/Wed 9:00–1:00" }) +
+      "</div></section>";
+
+    if (S.canWrite) {
+      h += '<div class="danger-zone">' + (S.confirmDelete
+        ? "<p>Delete " + esc(st.name) + "'s record? This can't be undone.</p>" +
+          '<button class="btn btn-sm btn-danger solid" data-act="del-yes" data-fk="dy"' + (S.busy ? " disabled" : "") + ">Delete record</button>" +
+          '<button class="btn btn-sm" data-act="del-no" data-fk="dn">Cancel</button>'
+        : '<button class="btn btn-sm btn-danger" data-act="del-ask" data-fk="da">Delete record</button>') + "</div>";
+    }
+    return h;
+  }
+
+  /* ---------- toast ---------- */
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $("#toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+  }
+
+  /* ---------- writes and automations ---------- */
+
+  function writeError(e) {
+    const code = e && e.code;
+    if (code === "invalid_argument" && !S.canKnown) {
+      S.canWrite = false; render();
+      toast("You can view these records but not change them.");
+    } else if (code === "quota_exceeded") {
+      toast("The record store is full. Delete old records, then try again.");
+    } else if (code === "unavailable" || code === "resource_exhausted") {
+      toast("Couldn't save. Wait a moment and try again.");
+    } else if (code === "revoked" || code === "not_granted") {
+      toast("Editing isn't available in this view.");
+    } else {
+      toast("Couldn't save that change.");
+    }
+  }
+
+  async function updateStudent(id, patch) {
+    patch.updatedAt = Date.now();
+    await S.db.doc("students/" + id).update(patch);
+  }
+
+  async function log(kind, flow, text, studentId) {
+    try {
+      await S.db.collection("activity").add({ ts: Date.now(), kind, flow: flow || null, text, studentId: studentId || null });
+      pruneActivity();
+    } catch (e) { /* the record change already saved; the log line is best effort */ }
+  }
+
+  let pruning = false;
+  async function pruneActivity() {
+    if (pruning) return; pruning = true;
+    try {
+      const snap = await S.db.collection("activity").orderBy("ts", "desc").get();
+      const extra = snap.docs.slice(150);
+      for (const d of extra) await S.db.doc("activity/" + d.id).delete();
+    } catch (e) { /* ignore */ }
+    pruning = false;
+  }
+
+  async function setStage(st, to) {
+    if (!S.canWrite || S.busy || st.stage === to) return;
+    const from = st.stage;
+    const patch = { stage: to, stageSince: todayStr() };
+    let flowText = null;
+    if (to === "onboarding" && S.flows.kickoff) {
+      const did = [];
+      if (!st.hasTasks) { const t = {}; TASKS.forEach(x => { t[x.key] = false; }); patch.tasks = t; did.push("created " + st.name + "'s " + TASKS.length + "-step checklist"); }
+      if (!st.startDate) { patch.startDate = nextMonday(); did.push("set " + (did.length ? "the" : st.name + "'s") + " start date to " + fmtLong(patch.startDate)); }
+      flowText = did.length ? cap(did.join(" and ")) + "." : "Checked " + st.name + "'s record. The checklist and start date were already in place.";
+    }
+    S.busy = true; renderDrawer();
+    try {
+      await updateStudent(st.id, patch);
+      S.busy = false; renderDrawer();
+      toast(st.name + " moved to " + stageLabel(to));
+      await log("manual", null, "Moved " + st.name + " from " + stageLabel(from) + " to " + stageLabel(to) + ".", st.id);
+      if (flowText) await log("flow", "kickoff", flowText, st.id);
+    } catch (e) { S.busy = false; renderDrawer(); writeError(e); }
+  }
+
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  async function toggleTask(st, key, checked) {
+    if (!S.canWrite) return;
+    const tasks = Object.assign({}, st.tasks, { [key]: checked });
+    const patch = { tasks: { [key]: checked } };
+    const allDone = TASKS.every(t => tasks[t.key]);
+    const activate = allDone && st.stage === "onboarding" && S.flows.activate;
+    if (activate) { patch.stage = "active"; patch.stageSince = todayStr(); }
+    try {
+      await updateStudent(st.id, patch);
+      if (activate) {
+        toast("That's everything. " + st.name + " is now Active.");
+        await log("flow", "activate", "Moved " + st.name + " to Active after all " + TASKS.length + " onboarding tasks were checked.", st.id);
+      }
+    } catch (e) { writeError(e); render(); }
+  }
+
+  async function saveField(st, el) {
+    if (!S.canWrite) return;
+    const name = el.getAttribute("data-field");
+    let v = el.value;
+    if (el.type === "number") {
+      v = v === "" ? null : Math.max(0, Math.min(40, Math.round(Number(v))));
+      if (v !== null && !isFinite(v)) return;
+    } else if (el.type === "date") {
+      v = parseDate(v) ? v : "";
+    } else {
+      v = v.trim().slice(0, 200);
+    }
+    let patch, prev;
+    if (name.indexOf("assignment.") === 0) {
+      const k = name.split(".")[1];
+      prev = st.assignment[k];
+      patch = { assignment: { [k]: v } };
+    } else {
+      prev = st[name];
+      patch = { [name]: v };
+    }
+    if ((prev == null ? "" : prev) === (v == null ? "" : v)) return;
+    try {
+      await updateStudent(st.id, patch);
+      if (name.indexOf("assignment.") === 0) {
+        const a = Object.assign({}, st.assignment, { [name.split(".")[1]]: v });
+        if (a.location && a.shift && st.stage === "active") await log("manual", null, "Assigned " + st.name + " to " + a.location + ", " + a.shift + ".", st.id);
+      }
+    } catch (e) { writeError(e); }
+  }
+
+  async function toggleFlow(key) {
+    if (!S.canWrite) return;
+    const f = FLOWS.find(x => x.key === key); if (!f) return;
+    const next = Object.assign({}, DEFAULT_FLOWS, S.flows, { [key]: !S.flows[key] });
+    S.flows = next; render();
+    try {
+      await S.db.doc("config/flows").set(Object.assign({}, next, { updatedAt: Date.now() }));
+      await log("manual", null, "Switched " + (next[key] ? "on" : "off") + " the \u201c" + f.name + "\u201d automation.", null);
+    } catch (e) { writeError(e); }
+  }
+
+  async function createStudent(form) {
+    const fd = new FormData(form);
+    const name = String(fd.get("name") || "").trim().slice(0, 200);
+    const err = $("#n-error");
+    if (!name) { err.hidden = false; err.textContent = "Enter the student's name to add the record."; $("#n-name").focus(); return; }
+    const position = String(fd.get("position") || "").trim().slice(0, 200);
+    const dept = String(fd.get("dept") || "").trim().slice(0, 200);
+    const appliedOn = parseDate(String(fd.get("appliedOn") || "")) ? String(fd.get("appliedOn")) : todayStr();
+    const hRaw = String(fd.get("hours") || "");
+    const hours = hRaw === "" || !isFinite(Number(hRaw)) ? null : Math.max(0, Math.min(40, Math.round(Number(hRaw))));
+    const now = Date.now();
+    S.busy = true;
+    try {
+      const ref = S.db.collection("students").doc();
+      await ref.set({ name, position, dept, appliedOn, hours, stage: "applied", stageSince: todayStr(), supervisor: "", assignment: { location: "", shift: "" }, createdAt: now, updatedAt: now });
+      S.busy = false;
+      S.mode = "view"; S.sel = ref.id; S.confirmDelete = false;
+      toast(name + " added to Applied");
+      render();
+      await log("manual", null, "Added " + name + " as an applicant" + (position ? " for " + position : "") + ".", ref.id);
+    } catch (e) { S.busy = false; writeError(e); }
+  }
+
+  async function deleteStudent(st) {
+    S.busy = true; renderDrawer();
+    try {
+      await S.db.doc("students/" + st.id).delete();
+      S.busy = false; S.mode = null; S.sel = null; S.confirmDelete = false;
+      toast(st.name + "'s record deleted");
+      render();
+      await log("manual", null, "Deleted " + st.name + "'s record.", null);
+    } catch (e) { S.busy = false; renderDrawer(); writeError(e); }
+  }
+
+  async function clearSample() {
+    S.busy = true; renderSample();
+    try {
+      const ids = S.students.filter(s => s.sample).map(s => s.id);
+      for (const id of ids) await S.db.doc("students/" + id).delete();
+      const acts = await S.db.collection("activity").where("sample", "==", true).get();
+      for (const d of acts.docs) await S.db.doc("activity/" + d.id).delete();
+      S.busy = false; S.confirmSample = false;
+      if (ids.includes(S.sel)) { S.mode = null; S.sel = null; }
+      toast("Sample data cleared");
+      render();
+    } catch (e) { S.busy = false; S.confirmSample = false; render(); writeError(e); }
+  }
+
+  /* ---------- events ---------- */
+
+  function current() { return S.students.find(s => s.id === S.sel); }
+
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-act]");
+    if (!b || b.disabled) return;
+    const act = b.getAttribute("data-act");
+    const st = current();
+    switch (act) {
+      case "filter": {
+        const k = b.getAttribute("data-stage");
+        S.filter = S.filter === k ? "all" : k; renderPipeline(); renderList(); break;
+      }
+      case "clear-filter": S.filter = "all"; renderPipeline(); renderList(); $("#q").focus(); break;
+      case "open": S.mode = "view"; S.sel = b.getAttribute("data-id"); S.confirmDelete = false; renderList(); renderDrawer(); break;
+      case "new": if (S.canWrite) { S.mode = "new"; S.sel = null; renderDrawer(); } break;
+      case "close": closeDrawer(); break;
+      case "stage": if (st) setStage(st, b.getAttribute("data-stage")); break;
+      case "next-stage": if (st) { const nx = STAGES[stageIndex(st.stage) + 1]; if (nx) setStage(st, nx.key); } break;
+      case "toggle-flow": toggleFlow(b.getAttribute("data-flow")); break;
+      case "del-ask": S.confirmDelete = true; renderDrawerForce(); break;
+      case "del-no": S.confirmDelete = false; renderDrawerForce(); break;
+      case "del-yes": if (st) deleteStudent(st); break;
+      case "sample-ask": S.confirmSample = true; renderSample(); break;
+      case "sample-no": S.confirmSample = false; renderSample(); break;
+      case "sample-yes": clearSample(); break;
+      case "reset-ask": S.confirmReset = true; renderFooter(); break;
+      case "reset-no": S.confirmReset = false; renderFooter(); break;
+      case "reset-yes":
+        S.confirmReset = false; S.confirmSample = false; S.mode = null; S.sel = null; S.filter = "all";
+        S.db.reset(); render(); toast("Back to the original sample students");
+        break;
+    }
+  });
+
+  function renderDrawerForce() { drawerKey = null; const dr = $("#drawer"); const keep = dr.scrollTop; renderDrawer(); dr.scrollTop = keep; const f = dr.querySelector('[data-fk="dy"], [data-fk="da"]'); if (f) f.focus({ preventScroll: true }); }
+
+  function closeDrawer() {
+    const id = S.sel;
+    S.mode = null; S.sel = null; S.confirmDelete = false;
+    renderDrawer(); renderList();
+    const back = id ? document.querySelector('[data-fk="row-' + CSS.escape(id) + '"]') : $("#add-btn");
+    if (back) back.focus({ preventScroll: true });
+  }
+
+  document.addEventListener("change", e => {
+    const el = e.target;
+    const st = current();
+    if (!st || S.mode !== "view") return;
+    if (el.hasAttribute("data-task")) toggleTask(st, el.getAttribute("data-task"), el.checked);
+    else if (el.hasAttribute("data-field")) saveField(st, el);
+  });
+
+  document.addEventListener("submit", e => {
+    if (e.target && e.target.id === "new-form") { e.preventDefault(); if (!S.busy) createStudent(e.target); }
+  });
+
+  $("#drawer").addEventListener("focusout", () => {
+    setTimeout(() => {
+      const a = document.activeElement;
+      if (drawerPending && !(a && $("#drawer").contains(a) && a.matches('input:not([type="checkbox"])'))) { drawerKey = null; renderDrawer(); }
+    }, 0);
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && S.mode) { e.preventDefault(); closeDrawer(); }
+  });
+
+  $("#q").addEventListener("input", e => { S.q = e.target.value; renderList(); });
+
+  /* ---------- data ---------- */
+
+
+  /*SHIM-START*/
+  const STORE_KEY = "student-workflow-dashboard-v1";
+  let persists = true;
+
+  function seedData() {
+    const now = Date.now();
+    const day = n => { const d = parseDate(todayStr()); d.setDate(d.getDate() + n); return iso(d); };
+    const done = { i9: true, tax: true, payroll: true, training: true, access: true };
+    const none = { location: "", shift: "" };
+    const rows = [
+      ["s-priya", { name: "Priya Nair", position: "Library Aide", dept: "Hayden Library", stage: "applied", appliedOn: day(-8), stageSince: day(-8), hours: 10, supervisor: "", assignment: none }],
+      ["s-marcus", { name: "Marcus Bell", position: "Info Desk Assistant", dept: "Memorial Union", stage: "applied", appliedOn: day(-2), stageSince: day(-2), hours: 12, supervisor: "", assignment: none }],
+      ["s-sofia", { name: "Sofia Hernández", position: "Peer Tutor (Calculus)", dept: "Fulton Tutoring Center", stage: "interview", appliedOn: day(-11), stageSince: day(-6), interviewOn: day(1), hours: 10, supervisor: "Dev Patel", assignment: none }],
+      ["s-daniel", { name: "Daniel Okafor", position: "Event Setup Crew", dept: "Event Services", stage: "interview", appliedOn: day(-13), stageSince: day(-9), interviewOn: day(5), hours: 15, supervisor: "Tom Reyes", assignment: none }],
+      ["s-aiko", { name: "Aiko Tanaka", position: "Fitness Desk Attendant", dept: "Sun Devil Fitness Complex", stage: "offer", appliedOn: day(-19), stageSince: day(-3), interviewOn: day(-7), hours: 12, supervisor: "Jordan Pike", assignment: none }],
+      ["s-liam", { name: "Liam Chen", position: "IT Help Desk Technician", dept: "Engineering IT Help Desk", stage: "onboarding", appliedOn: day(-28), stageSince: day(-7), interviewOn: day(-20), startDate: day(1), hours: 15, supervisor: "Kara Singh", tasks: { i9: true, tax: true, payroll: false, training: false, access: false }, assignment: none }],
+      ["s-hannah", { name: "Hannah Weiss", position: "Library Aide", dept: "Hayden Library", stage: "onboarding", appliedOn: day(-23), stageSince: day(-1), interviewOn: day(-14), startDate: day(4), hours: 10, supervisor: "Beth Larsen", tasks: { i9: true, tax: true, payroll: true, training: false, access: false }, assignment: none }],
+      ["s-grace", { name: "Grace Kim", position: "Peer Tutor (Physics)", dept: "Fulton Tutoring Center", stage: "active", appliedOn: day(-35), stageSince: day(-6), interviewOn: day(-27), startDate: day(-3), hours: 8, supervisor: "Dev Patel", tasks: done, assignment: none }],
+      ["s-omar", { name: "Omar Haddad", position: "Info Desk Assistant", dept: "Memorial Union", stage: "active", appliedOn: day(-51), stageSince: day(-27), interviewOn: day(-43), startDate: day(-24), hours: 12, supervisor: "Rosa Delgado", tasks: done, assignment: { location: "MU Info Desk, 1st floor", shift: "Mon/Wed 8:00–12:00" } }],
+      ["s-ethan", { name: "Ethan Morales", position: "Event Setup Crew", dept: "Event Services", stage: "active", appliedOn: day(-79), stageSince: day(-55), interviewOn: day(-71), startDate: day(-52), hours: 15, supervisor: "Tom Reyes", tasks: done, assignment: { location: "Sun Devil Stadium event setup", shift: "Fri/Sat evenings" } }]
+    ];
+    const students = {};
+    rows.forEach(([id, b]) => { students[id] = Object.assign({ sample: true, createdAt: now, updatedAt: now }, JSON.parse(JSON.stringify(b))); });
+    const H = 3600000, D = 86400000;
+    const acts = [
+      ["a01", D + 2 * H, "manual", null, "Moved Hannah Weiss from Offer to Onboarding.", "s-hannah"],
+      ["a02", D + 2 * H - 2000, "flow", "kickoff", "Created Hannah Weiss's 5-step checklist.", "s-hannah"],
+      ["a03", 2 * D + 3 * H, "manual", null, "Added Marcus Bell as an applicant for Info Desk Assistant.", "s-marcus"],
+      ["a04", 3 * D + 5 * H, "manual", null, "Moved Aiko Tanaka from Interview to Offer.", "s-aiko"],
+      ["a05", 6 * D + H, "manual", null, "Moved Sofia Hernández from Applied to Interview.", "s-sofia"],
+      ["a06", 6 * D + 6 * H, "flow", "activate", "Moved Grace Kim to Active after all 5 onboarding tasks were checked.", "s-grace"],
+      ["a07", 7 * D + 4 * H, "manual", null, "Moved Liam Chen from Offer to Onboarding.", "s-liam"],
+      ["a08", 7 * D + 4 * H - 2000, "flow", "kickoff", "Created Liam Chen's 5-step checklist.", "s-liam"],
+      ["a09", 8 * D + 2 * H, "manual", null, "Added Priya Nair as an applicant for Library Aide.", "s-priya"]
+    ];
+    const activity = {};
+    acts.forEach(([id, back, kind, flow, text, studentId]) => { activity[id] = { ts: now - back, kind, flow, text, studentId, sample: true }; });
+    return { students, activity, config: {} };
+  }
+
+  function makeLocalDb() {
+    let data = null;
+    const listeners = new Set();
+    const clone = v => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+    function write() {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); persists = true; } catch (e) { persists = false; }
+    }
+    function changed() { write(); listeners.forEach(fn => { try { fn(); } catch (e) { console.error(e); } }); }
+    try { data = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) { data = null; persists = false; }
+    if (!data || typeof data !== "object" || !data.students) { data = seedData(); write(); }
+    const tbl = col => (data[col] = data[col] || {});
+    const snapDoc = (id, body) => ({ id, exists: !!body, data: () => clone(body), metadata: { fromCache: false, hasPendingWrites: false } });
+    function merge(t, src) {
+      Object.keys(src).forEach(k => {
+        const v = src[k];
+        if (v && typeof v === "object" && !Array.isArray(v) && t[k] && typeof t[k] === "object" && !Array.isArray(t[k])) merge(t[k], v);
+        else t[k] = v;
+      });
+      return t;
+    }
+    function listen(fn) { listeners.add(fn); setTimeout(fn, 0); return () => listeners.delete(fn); }
+    const newId = () => "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    function docRef(path) {
+      const parts = path.split("/"), col = parts[0], id = parts[1];
+      return {
+        id, path,
+        get: async () => snapDoc(id, tbl(col)[id]),
+        set: async body => { tbl(col)[id] = clone(body); changed(); },
+        update: async body => {
+          const cur = tbl(col)[id];
+          if (!cur) throw { code: "invalid_argument", message: "That record no longer exists." };
+          merge(cur, clone(body)); changed();
+        },
+        delete: async () => { delete tbl(col)[id]; changed(); },
+        onSnapshot: next => listen(() => next(snapDoc(id, tbl(col)[id])))
+      };
+    }
+    function query(col, o) {
+      const run = () => {
+        let rows = Object.keys(tbl(col)).map(id => ({ id, b: tbl(col)[id] }));
+        (o.where || []).forEach(w => { rows = rows.filter(r => (w[1] === "==" ? r.b[w[0]] === w[2] : w[1] === "!=" ? r.b[w[0]] !== w[2] : true)); });
+        if (o.order) {
+          const f = o.order[0], m = o.order[1] === "desc" ? -1 : 1;
+          rows.sort((a, b) => { const x = a.b[f], y = b.b[f]; return (x < y ? -1 : x > y ? 1 : 0) * m; });
+        } else rows.sort((a, b) => (a.id < b.id ? -1 : 1));
+        if (o.limit) rows = rows.slice(0, o.limit);
+        const docs = rows.map(r => snapDoc(r.id, r.b));
+        return { docs, size: docs.length, empty: !docs.length, metadata: { fromCache: false, hasPendingWrites: false }, docChanges: () => [] };
+      };
+      return {
+        where: (f, op, v) => query(col, Object.assign({}, o, { where: (o.where || []).concat([[f, op, v]]) })),
+        orderBy: (f, dir) => query(col, Object.assign({}, o, { order: [f, dir || "asc"] })),
+        limit: n => query(col, Object.assign({}, o, { limit: n })),
+        get: async () => run(),
+        onSnapshot: next => listen(() => next(run())),
+        doc: id => docRef(col + "/" + (id || newId())),
+        add: async body => { const r = docRef(col + "/" + newId()); await r.set(body); return r; }
+      };
+    }
+    window.addEventListener("storage", e => {
+      if (e.key !== STORE_KEY) return;
+      try {
+        const next = JSON.parse(e.newValue || "null");
+        if (next && typeof next === "object" && next.students) { data = next; listeners.forEach(fn => fn()); }
+      } catch (err) { /* ignore */ }
+    });
+    return { doc: docRef, collection: col => query(col, {}), reset: () => { data = seedData(); changed(); } };
+  }
+  /*SHIM-END*/
+
+  function renderFooter() {
+    const el = $("#foot"); if (!el) return;
+    withFocus(el, () => {
+      el.innerHTML = S.confirmReset
+        ? '<p><strong>Start over with the original sample students?</strong> Everything you changed here goes away.</p><div class="row-actions"><button class="btn btn-sm btn-danger solid" data-act="reset-yes" data-fk="ry">Start over</button><button class="btn btn-sm" data-act="reset-no" data-fk="rn">Cancel</button></div>'
+        : "<p>" + (persists ? "Your changes save in this browser only, so everyone who opens this page gets their own copy to try out." : "This browser isn't letting the page save, so your changes last until you close the tab.") + '</p><div class="row-actions"><button class="btn btn-sm" data-act="reset-ask" data-fk="ra">Reset demo</button></div>';
+    });
+  }
+
+  async function start() {
+    render();
+    const db = makeLocalDb();
+    S.db = db; S.canWrite = true; S.canKnown = true;
+    const slowTimer = 0;
+
+    db.collection("students").onSnapshot(snap => {
+      S.students = snap.docs.filter(d => d.exists).map(normalize);
+      S.studentsLoaded = true;
+      if (!snap.metadata.fromCache) { clearTimeout(slowTimer); S.status = "live"; }
+      render();
+    }, err => {
+      clearTimeout(slowTimer);
+      S.status = "error"; render();
+    });
+
+    db.collection("activity").orderBy("ts", "desc").limit(40).onSnapshot(snap => {
+      S.activity = snap.docs.filter(d => d.exists).map(d => {
+        const x = d.data() || {};
+        const flow = typeof x.flow === "string" ? x.flow : null;
+        const f = FLOWS.find(y => y.key === flow);
+        return { id: d.id, ts: typeof x.ts === "number" ? x.ts : 0, kind: x.kind === "flow" ? "flow" : "manual", flow, flowName: f ? f.name : "", text: str(x.text) || "Updated a record." };
+      });
+      renderActivity(); renderFlows();
+    }, () => { /* activity is secondary; the list keeps working */ });
+
+    db.doc("config/flows").onSnapshot(snap => {
+      const x = snap.exists ? (snap.data() || {}) : {};
+      const f = {};
+      Object.keys(DEFAULT_FLOWS).forEach(k => { f[k] = typeof x[k] === "boolean" ? x[k] : DEFAULT_FLOWS[k]; });
+      S.flows = f;
+      render();
+    }, () => { /* defaults stay on */ });
+
+  }
+
+  // Monitor flows depend on today's date; refresh flags once a minute without writing anything.
+  setInterval(() => { if (S.studentsLoaded) { renderPipeline(); renderList(); renderAttention(); renderFlows(); renderActivity(); } }, 60000);
+
+  start();
+})();
+</script>
+
+</body>
+</html>
